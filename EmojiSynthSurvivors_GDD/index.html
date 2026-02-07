@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Emoji Synth Survivors</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;600;700&family=Space+Grotesk:wght@400;600;700&display=swap"
+        rel="stylesheet">
+</head>
+
+<body>
+    <div id="app">
+        <header class="topbar">
+            <div>
+                <div class="logo">EMOJI SYNTH SURVIVORS</div>
+                <div class="subtitle">Bullet-heaven turned into a living track. Survive the beat.</div>
+            </div>
+            <div class="topbar-actions">
+                <div id="versionValue" class="badge badge-muted">v0.5.0</div>
+                <button id="startBtn" class="primary">Start</button>
+                <button id="pauseBtn" class="ghost" disabled>Pause</button>
+                <div id="audioStatus" class="badge">Audio: Off</div>
+            </div>
+        </header>
+
+        <main class="stage">
+            <div class="frame">
+                <canvas id="game" aria-label="Emoji Synth Survivors game canvas"></canvas>
+                <div id="hud" class="hud">
+                    <div class="hud-row">
+                        <div class="hud-item">HP <span id="hpValue">100</span></div>
+                        <div class="hud-item">Level <span id="levelValue">1</span></div>
+                        <div class="hud-item">BPM <span id="bpmValue">120</span></div>
+                        <div class="hud-item">Enemies <span id="enemyValue">0</span></div>
+                    </div>
+                    <div class="hud-row">
+                        <div class="hud-item">XP <span id="xpValue">0</span>/<span id="xpNextValue">12</span></div>
+                        <div class="hud-item">Kills <span id="killValue">0</span></div>
+                        <div class="hud-item">Track <span id="trackValue">Drums</span></div>
+                    </div>
+                </div>
+
+                <div id="overlay" class="overlay visible">
+                    <div class="panel">
+                        <div class="panel-title">How to Play</div>
+                        <ul class="panel-list">
+                            <li>Move with WASD or arrow keys.</li>
+                            <li>Auto-fire locks onto the closest enemy.</li>
+                            <li>Collect 💎 to level up and add instruments.</li>
+                            <li>Your movement shapes the filter and drive.</li>
+                        </ul>
+                        <div class="panel-actions">
+                            <button id="overlayStart" class="primary">Start the Session</button>
+                            <button id="overlayMute" class="ghost">Mute</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="levelup" class="overlay">
+                    <div class="panel">
+                        <div class="panel-title">Level Up: Choose a Module</div>
+                        <div id="upgradeChoices" class="choices"></div>
+                    </div>
+                </div>
+            </div>
+
+            <aside class="sidepanel">
+                <div class="sidepanel-title">Signal</div>
+                <div class="meter">
+                    <div class="meter-label">Intensity</div>
+                    <div class="meter-bar"><div id="intensityBar"></div></div>
+                </div>
+                <div class="meter">
+                    <div class="meter-label">Filter</div>
+                    <div class="meter-bar"><div id="filterBar"></div></div>
+                </div>
+                <div class="meter">
+                    <div class="meter-label">Drive</div>
+                    <div class="meter-bar"><div id="driveBar"></div></div>
+                </div>
+                <div class="legend">
+                    <div class="legend-title">Cast</div>
+                    <div class="legend-item">👤 The Maestro</div>
+                    <div class="legend-item">👾 The Snare</div>
+                    <div class="legend-item">👹 The Bass Drop</div>
+                    <div class="legend-item">💎 Musical Notes</div>
+                </div>
+                <div class="log-panel">
+                    <div class="log-title">Log</div>
+                    <div id="logList" class="log-list"></div>
+                </div>
+            </aside>
+        </main>
+    </div>
+
+    <script src="https://unpkg.com/tone/build/Tone.js"></script>
+    <script src="script.js"></script>
+</body>
+
+</html>
