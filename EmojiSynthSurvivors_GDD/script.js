@@ -1,7 +1,7 @@
 const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d');
 
-const VERSION = '0.5.0';
+const VERSION = '0.5.2';
 
 const startBtn = document.getElementById('startBtn');
 const pauseBtn = document.getElementById('pauseBtn');
@@ -22,6 +22,16 @@ const trackValue = document.getElementById('trackValue');
 const audioStatus = document.getElementById('audioStatus');
 const versionValue = document.getElementById('versionValue');
 const logList = document.getElementById('logList');
+const mixMaster = document.getElementById('mixMaster');
+const mixKick = document.getElementById('mixKick');
+const mixClap = document.getElementById('mixClap');
+const mixHat = document.getElementById('mixHat');
+const mixBass = document.getElementById('mixBass');
+const mixChord = document.getElementById('mixChord');
+const mixPad = document.getElementById('mixPad');
+const mixLead = document.getElementById('mixLead');
+const mixReverb = document.getElementById('mixReverb');
+const mixDrive = document.getElementById('mixDrive');
 
 const intensityBar = document.getElementById('intensityBar');
 const filterBar = document.getElementById('filterBar');
@@ -81,6 +91,7 @@ const audio = {
     startTime: 0,
     step: 0,
     nextTick: 0,
+    lastTime: {},
     master: null,
     limiter: null,
     compressor: null,
@@ -154,6 +165,45 @@ function logEvent(message, type = 'info') {
     while (logList.children.length > maxEntries) {
         logList.removeChild(logList.lastChild);
     }
+}
+
+function rangeToDb(value, minDb = -40, maxDb = 0) {
+    const t = Math.min(100, Math.max(0, value)) / 100;
+    return minDb + (maxDb - minDb) * t;
+}
+
+function applyMix() {
+    if (!audio.ready) return;
+    if (audio.master && mixMaster) {
+        const db = rangeToDb(Number(mixMaster.value), -30, -2);
+        audio.master.gain.rampTo(Tone.dbToGain(db), 0.05);
+    }
+    if (audio.kick && mixKick) audio.kick.volume.value = rangeToDb(Number(mixKick.value), -36, -6);
+    if (audio.clap && mixClap) audio.clap.volume.value = rangeToDb(Number(mixClap.value), -40, -10);
+    if (audio.hat && mixHat) audio.hat.volume.value = rangeToDb(Number(mixHat.value), -40, -12);
+    if (audio.bass && mixBass) audio.bass.volume.value = rangeToDb(Number(mixBass.value), -36, -8);
+    if (audio.chord && mixChord) audio.chord.volume.value = rangeToDb(Number(mixChord.value), -40, -10);
+    if (audio.pad && mixPad) audio.pad.volume.value = rangeToDb(Number(mixPad.value), -40, -12);
+    if (audio.lead && mixLead) audio.lead.volume.value = rangeToDb(Number(mixLead.value), -40, -12);
+    if (audio.reverb && mixReverb) {
+        const wet = Math.min(0.5, Math.max(0, Number(mixReverb.value) / 100));
+        audio.reverb.wet.rampTo(wet, 0.1);
+    }
+    if (audio.drive && mixDrive) {
+        const amount = Math.min(0.6, Math.max(0, Number(mixDrive.value) / 100));
+        audio.drive.distortion = amount;
+    }
+}
+
+function getSafeTime(key, time) {
+    const now = Tone.now() + 0.002;
+    let safe = Math.max(time, now);
+    const last = audio.lastTime[key] ?? 0;
+    if (safe < last + 0.001) {
+        safe = last + 0.001;
+    }
+    audio.lastTime[key] = safe;
+    return safe;
 }
 
 function resize() {
@@ -533,10 +583,8 @@ function updateAudio(dt) {
         if (!audio.userGesture || !audio.transportReady) {
             return;
         }
-        const intensity = state.intensity;
-        const targetGain = 0.42 - intensity * 0.12;
-        audio.master.gain.rampTo(audio.muted ? 0 : targetGain, 0.1);
-        audio.reverb.wet.rampTo(0.1 + intensity * 0.06, 0.2);
+        // Keep mix under user control via sliders.
+        applyMix();
     }
     pulse = Math.max(0, pulse - dt * 1.5);
     killFlash = Math.max(0, killFlash - dt * 0.6);
@@ -660,6 +708,7 @@ async function setupAudio() {
     audio.ready = true;
     audioStatus.textContent = 'Audio: On';
     logEvent('Audio initialized', 'info');
+    applyMix();
 }
 
 function muteAudio() {
@@ -673,14 +722,16 @@ function muteAudio() {
 
 function triggerKick(time) {
     if (!audio.ready) return;
-    audio.kick.triggerAttackRelease('C1', '8n', time);
+    const t = getSafeTime('kick', time);
+    audio.kick.triggerAttackRelease('C1', '8n', t);
 }
 
 function triggerBass(time) {
     if (!audio.ready) return;
     const chord = getCurrentChord();
     const note = pickScaleNote(chord, 2);
-    audio.bass.triggerAttackRelease(note, '8n', time);
+    const t = getSafeTime('bass', time);
+    audio.bass.triggerAttackRelease(note, '8n', t);
 }
 
 function playLead(angle) {
@@ -690,7 +741,10 @@ function playLead(angle) {
     const note = pickScaleNote(chord, 4);
     const detune = Math.sin(angle) * 15;
     audio.lead.set({ detune });
-    scheduleAt(() => audio.lead.triggerAttackRelease(note, '8n', time), time);
+    scheduleAt(() => {
+        const t = getSafeTime('lead', time);
+        audio.lead.triggerAttackRelease(note, '8n', t);
+    }, time);
 }
 
 function getCurrentChord(octave = 4) {
@@ -802,7 +856,8 @@ function collectGem(gem, index) {
         }
         const chord = getCurrentChord();
         const note = pickScaleNote(chord, 5);
-        audio.chime.triggerAttackRelease(note, '16n', time);
+        const t = getSafeTime('chime', time);
+        audio.chime.triggerAttackRelease(note, '16n', t);
         gainXp(2);
     }, time);
 
@@ -994,31 +1049,37 @@ function startScheduler() {
 
             // Kick: 4-on-the-floor
             if (step % 4 === 0) {
-                audio.kick.triggerAttackRelease('C1', '8n', tickTime);
+                const t = getSafeTime('kick', tickTime);
+                audio.kick.triggerAttackRelease('C1', '8n', t);
             }
             // Clap on 2 and 4
             if (step === 4 || step === 12) {
-                audio.clap.triggerAttackRelease('16n', tickTime);
+                const t = getSafeTime('clap', tickTime);
+                audio.clap.triggerAttackRelease('16n', t);
             }
             // Hats on off-beats
             if (step % 2 === 1) {
-                audio.hat.triggerAttackRelease('16n', tickTime);
+                const t = getSafeTime('hat', tickTime);
+                audio.hat.triggerAttackRelease('16n', t);
             }
             // Bass pulse
             if (audio.bassActive && step % 2 === 0) {
                 const chord = getCurrentChord();
                 const note = pickScaleNote(chord, 2);
-                audio.bass.triggerAttackRelease(note, '8n', tickTime);
+                const t = getSafeTime('bass', tickTime);
+                audio.bass.triggerAttackRelease(note, '8n', t);
             }
             // Chord stabs
             if (audio.leadActive && (step === 2 || step === 6 || step === 10 || step === 14)) {
                 const chord = getCurrentChord(3);
-                audio.chord.triggerAttackRelease(chord, '8n', tickTime);
+                const t = getSafeTime('chord', tickTime);
+                audio.chord.triggerAttackRelease(chord, '8n', t);
             }
             // Pads on bar start
             if (audio.padActive && step === 0) {
                 const chord = getCurrentChord();
-                audio.pad.triggerAttackRelease(chord, '1m', tickTime);
+                const t = getSafeTime('pad', tickTime);
+                audio.pad.triggerAttackRelease(chord, '1m', t);
                 advanceChord();
             }
 
@@ -1087,6 +1148,14 @@ document.addEventListener('visibilitychange', () => {
         await ensureAudioRunning();
     }, { passive: true });
 });
+
+[mixMaster, mixKick, mixClap, mixHat, mixBass, mixChord, mixPad, mixLead, mixReverb, mixDrive]
+    .filter(Boolean)
+    .forEach((slider) => {
+        slider.addEventListener('input', () => {
+            applyMix();
+        });
+    });
 
 resize();
 updateHud();

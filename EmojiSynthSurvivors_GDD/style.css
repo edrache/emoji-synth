@@ -296,6 +296,52 @@ button:hover:not(:disabled) {
     text-transform: uppercase;
 }
 
+.controls {
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    padding-top: 1rem;
+    display: grid;
+    gap: 0.6rem;
+}
+
+.controls-title {
+    font-family: var(--font-display);
+    color: var(--text);
+    font-size: 0.85rem;
+    text-transform: uppercase;
+}
+
+.control {
+    display: grid;
+    gap: 0.35rem;
+    font-size: 0.75rem;
+    color: var(--muted);
+}
+
+.control input[type="range"] {
+    appearance: none;
+    height: 6px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.08);
+    outline: none;
+}
+
+.control input[type="range"]::-webkit-slider-thumb {
+    appearance: none;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: linear-gradient(120deg, var(--accent-2), var(--accent-3));
+    box-shadow: 0 0 12px rgba(47, 224, 255, 0.6);
+}
+
+.control input[type="range"]::-moz-range-thumb {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: linear-gradient(120deg, var(--accent-2), var(--accent-3));
+    border: none;
+}
+
 .log-panel {
     border-top: 1px solid rgba(255, 255, 255, 0.08);
     padding-top: 1rem;
